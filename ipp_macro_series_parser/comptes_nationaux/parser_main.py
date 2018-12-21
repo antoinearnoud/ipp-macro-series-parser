@@ -1,32 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-# TaxIPP -- A french microsimulation model
-# By: IPP <taxipp@oipp.eu>
-#
-# Copyright (C) 2012, 2013, 2014, 2015 IPP
-# https://github.com/taxipp
-#
-# This file is part of TaxIPP.
-#
-# TaxIPP is free software; you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# TaxIPP is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
 import logging
 import os
 import pandas
-import pkg_resources
 import numpy
 
 
@@ -38,9 +15,7 @@ from ipp_macro_series_parser.comptes_nationaux.parser_non_tee import non_tee_df_
 log = logging.getLogger(__name__)
 
 
-parser = Config(
-    config_files_directory = os.path.join(pkg_resources.get_distribution('ipp-macro-series-parser').location)
-    )
+parser = Config()
 hdf_directory = parser.get('data', 'cn_hdf_directory')
 
 
@@ -93,10 +68,12 @@ def get_comptes_nationaux_data(year, list_years = None, drop_duplicates = True, 
     key = 'test'
     file_path = os.path.join(hdf_directory, hdf_file_name)
     if force_recompute or not os.path.exists(file_path):
+        log.info('Opening HDF5 file {} and (re)generating key {}'.format(hdf_file_name, key))
         df = cn_df_generator(year, list_years = list_years, drop_duplicates = drop_duplicates, subset = subset)
         save_df_to_hdf(df, hdf_file_name, key)
         return df
     else:
+        log.info('Opening HDF5 file {} and reading key {}'.format(hdf_file_name, key))
         return import_hdf_to_df(hdf_file_name, key)
 
 

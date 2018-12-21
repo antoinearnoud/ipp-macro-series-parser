@@ -22,23 +22,15 @@ def getunzipped(theurl, thedir, file_name):
         print("Can't retrieve %r to %r: %s" % (theurl, thedir, e))
         return
 
-
-to_be_downloaded = [
-    'a-transport-et-activite-economique',
-    'b-entreprises-francaises-de-transport',
-    'c-transport-emploi-remuneration',
-    'd-transport-developpement-durable',
-    'e-transport-de-marchandises',
-    'f-transport-de-voyageurs',
-    'g-bilan-de-circulation'
+to_be_downloaded = [    
+    'Annexes_G_-_Bilan_de_la_circulation'
     ]
 
 
 def transports_downloader():
     for element in to_be_downloaded:
-        theurl = 'http://www.statistiques.developpement-durable.gouv.fr/fileadmin/documents/Produits_editoriaux/Publications/References/2014/comptes-transports/annexes-{}-2013.xls'.format(element)
+        theurl = 'http://www.statistiques.developpement-durable.gouv.fr/fileadmin/documents/Themes/Transports/Comptes_des_transports/2016/{}.xls'.format(element)
         thedir = os.path.join(transports_directory)
         getunzipped(theurl, thedir, element + '.xls')
-
 
 transports_downloader()

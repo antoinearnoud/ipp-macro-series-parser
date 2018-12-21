@@ -1,28 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-# TAXIPP -- A French microsimulation model
-# By: IPP <taxipp@ipp.eu>
-#
-# Copyright (C) 2012, 2013, 2014, 2015 IPP
-# https://github.com/taxipp
-#
-# This file is part of TAXIPP.
-#
-# TAXIPP is free software; you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# TAXIPP is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
+import logging
 import os
 import pandas
 import pkg_resources
@@ -31,9 +10,11 @@ import pkg_resources
 from ipp_macro_series_parser.config import Config
 from ipp_macro_series_parser.denombrements_fiscaux.agregats_ipp import build_irpp_tables
 
-config_parser = Config(
-    config_files_directory = os.path.join(pkg_resources.get_distribution('ipp-macro-series-parser').location)
-    )
+
+log = logging.getLogger(__name__)
+
+
+config_parser = Config()
 xls_directory = config_parser.get('data', 'denombrements_fiscaux_xls')
 file_path = os.path.join(xls_directory, u"Agrégats IPP - Données fiscales.xls")
 sheetname = 'calculs calage'
@@ -47,6 +28,21 @@ should be {} instead of {}
     return msg
 
 fill_value = 0
+
+
+def check_nan_log_msg(table_name, data_frame):
+
+    data_frame = data_frame.reset_index()
+    data_frame = data_frame.loc[
+        (data_frame.year >= 2008) & (data_frame.year <= 2011)
+        ].set_index('year')
+    if not data_frame.notnull().all().all():
+        log.info('{} has NaN variables:\n {} \n'.format(
+            table_name,
+            data_frame[
+                data_frame.isnull().any(axis=1) & ~data_frame.isnull().all(axis=1)
+                ].T
+            ))
 
 
 def build_original_irpp_tables():
@@ -78,6 +74,8 @@ def build_original_irpp_tables():
         parse_cols = 'A:O').iloc[1:20]
     irpp_1.rename(columns = slugified_name_by_long_name, inplace = True)
     irpp_1.index.name = 'year'
+    check_nan_log_msg('irpp_1', irpp_1)
+    irpp_1.loc[2009, 'revenus_financiers'] = 39.334742586
 
     # Table 2
     slugified_name_by_long_name.update({
@@ -104,13 +102,21 @@ def build_original_irpp_tables():
         parse_cols = 'A:M').iloc[1:20]
     irpp_2.rename(columns = slugified_name_by_long_name, inplace = True)
     irpp_2.index.name = 'year'
+    del irpp_2[u'Total (après abat.)']
+    check_nan_log_msg('irpp_2', irpp_2)
+    # Fix issue #34 inversion 2CH et 2GR en 2009
+    irpp_2.loc[2009, 'assurances_vie_imposees_au_bareme'] = 1.063726777
+    irpp_2.loc[2009, 'revenus_imposes_au_bareme'] = 18.642426901
+    irpp_2.loc[2009, 'revenus_financiers'] = 39.334742586
+    irpp_2.loc[2009, 'revenus_financiers_hors_plus_values'] = 31.316215196
 
     # Table 3
     slugified_name_by_long_name.update({
         u'Total  Plus-values': 'plus_values',
         u'PV mobilières (régime normal)': 'plus_values_mobilieres_regime_normal',
-        # u'PV stock options 1',
-        # u'PV stock options 2',  'plus_values_mobilieres_stock_options' sum of both
+        u'PV stock options 1': 'pv_stock_options_1',
+        u'PV stock options 2': 'pv_stock_options_2',
+        # 'plus_values_mobilieres_stock_options' sum of both see below
         u'PV retraite dirigeant': 'plus_values_mobilieres_retraite_dirigeant',
         u'PV profess. (régime normal)*': 'plus_values_professionnelles_regime_normal',
         u'PV profess. (retraite dirigeant)': 'plus_values_professionnelles_retraite_dirigeant',
@@ -126,13 +132,16 @@ def build_original_irpp_tables():
         parse_cols = 'A:I').iloc[1:20]
     irpp_3.rename(columns = slugified_name_by_long_name, inplace = True)
     irpp_3.index.name = 'year'
+    irpp_3['plus_values_mobilieres_stock_options'] = irpp_3.pv_stock_options_1 + irpp_3.pv_stock_options_2
+    check_nan_log_msg('irpp_3', irpp_3)
+    # plus_values_professionnelles_regime_normal = 'f5hz + f5iz + f5jz' pas valabe après 2010
 
     # Table 4
     slugified_name_by_long_name.update({
         u"Revenus d'activité non salariée": 'revenus_d_activite_non_salariee',
         u'BA': 'benefices_agricoles',
         u'BIC': 'benefices_industriels_commerciaux',
-        #        u'BNC',
+        u'BNC': 'benefices_non_commerciaux',
         #        u'Nonsal exo',
         u'BA brut': 'benefices_agricoles_bruts',
         u'BIC brut': 'benefices_industriels_commerciaux_bruts',
@@ -154,6 +163,11 @@ def build_original_irpp_tables():
         parse_cols = 'A:O').iloc[1:20]
     irpp_4.rename(columns = slugified_name_by_long_name, inplace = True)
     irpp_4.index.name = 'year'
+    irpp_4 = irpp_4 / 1e9
+    del irpp_4['txabt_micro']
+    del irpp_4['txabt_micro_service']
+    del irpp_4['txabt_microbnc']
+    check_nan_log_msg('irpp_4', irpp_4)
 
     original_data_frame_by_irpp_table_name = dict(
         irpp_1 = irpp_1,
@@ -165,33 +179,37 @@ def build_original_irpp_tables():
     return original_data_frame_by_irpp_table_name
 
 
-data_frame_by_irpp_table_name = build_irpp_tables(years = range(2008, 2013), fill_value = 0)
-original_data_frame_by_irpp_table_name = build_original_irpp_tables()
+def test():
+    data_frame_by_irpp_table_name = build_irpp_tables(years = range(2009, 2013), fill_value = 0)
+    original_data_frame_by_irpp_table_name = build_original_irpp_tables()
 
+    excluded_variables = [
+        'salaires_imposables',
+        'heures_supplementaires',
+        'frais_reels',
+        'pensions_alimentaires_percues',
+        'plus_values_mobilieres_stock_options',
+        'plus_values_mobilieres',
+        'plus_values_professionnelles',
+        ]
 
-excluded_variables = ['plus_values_mobilieres_stock_options', 'plus_values_mobilieres']
-# ajouter salaires_imposables ?
+    messages = list()
+    for irpp_table_name, data_frame in data_frame_by_irpp_table_name.iteritems():
+        for year in data_frame.index:
+            for variable in data_frame.columns:
+                if not (2008 <= year <= 2011):
+                    continue
+                if variable in excluded_variables:
+                    continue
+                try:
+                    target = (
+                        original_data_frame_by_irpp_table_name[irpp_table_name].loc[year, variable]
+                        )
+                except KeyError:
+                    print '{} not found for {} in table {}'.format(variable, year, irpp_table_name)
+                    continue
+                actual = data_frame.fillna(value = fill_value).loc[year, variable] / 1e9
+                if not abs(target - actual) / abs(target) <= 1e-3:
+                    messages.append(error_msg(irpp_table_name, variable, year, target, actual))
 
-messages = list()
-for irpp_table_name, data_frame in data_frame_by_irpp_table_name.iteritems():
-    for year in data_frame.index:
-        for variable in data_frame.columns:
-            if not year == 2010 :
-                continue
-            if variable in excluded_variables:
-                continue
-            try:
-                target = (
-                    original_data_frame_by_irpp_table_name[irpp_table_name].loc[year, variable]
-                    if irpp_table_name != 'irpp_4'
-                    else original_data_frame_by_irpp_table_name[irpp_table_name].loc[year, variable] / 1e9
-                    )
-            except KeyError:
-                print '{} not found for {} in table {}'.format(variable, year, irpp_table_name)
-                continue
-            actual = data_frame.fillna(value = fill_value).loc[year, variable] / 1e9
-            if not abs(target - actual) <= 1e-6:
-                messages.append(error_msg(irpp_table_name, variable, year, target, actual))
-
-for message in messages:
-    print message
+    assert len(messages) == 0, "\nThere are {} errors.".format(len(messages)) + "\n".join(messages)

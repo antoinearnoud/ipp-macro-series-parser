@@ -11,9 +11,7 @@ from ipp_macro_series_parser.data_extraction import (
     look_many, look_up, get_or_construct_value, get_or_construct_data)
 from ipp_macro_series_parser.comptes_nationaux.sheets_lists import generate_CN1_variables, generate_CN2_variables
 
-parser = Config(
-    config_files_directory = os.path.join(pkg_resources.get_distribution('ipp-macro-series-parser').location)
-    )
+parser = Config()
 cn_directory = parser.get('data', 'cn_directory')
 cn_hdf = parser.get('data', 'cn_hdf_directory')
 cn_csv = parser.get('data', 'cn_csv_directory')
@@ -369,6 +367,7 @@ def test_compare_sheets_to_IPP():  # WIP. for now it only generates the first tw
 # NB: normal si Impôts indirects (CN2) ne sont pas les mêmes :
 # NB : on a des variables calculées qui sont NaN pour une série d'année, alors qu'Agrégats IPP a mis en 0 les variables
 # d'input n'existant pas pour des années (du coup là le calcul se fait).
+
 
 # LE RUN
 if __name__ == '__main__':

@@ -10,7 +10,6 @@ import glob
 import logging
 import os
 import pandas
-import pkg_resources
 
 
 from ipp_macro_series_parser.config import Config
@@ -21,9 +20,7 @@ log = logging.getLogger(__name__)
 
 
 # get the name of local folder for comptabilite national data
-parser = Config(
-    config_files_directory = os.path.join(pkg_resources.get_distribution('ipp-macro-series-parser').location)
-    )
+parser = Config()
 cn_directory = parser.get('data', 'cn_directory')
 
 

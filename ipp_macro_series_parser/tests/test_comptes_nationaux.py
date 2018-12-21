@@ -14,9 +14,7 @@ from ipp_macro_series_parser.comptes_nationaux.sheets_lists import generate_CN1_
 from ipp_macro_series_parser.comptes_nationaux.cn_test import read_CN1, read_profits_societes, create_dict_profits
 
 from ipp_macro_series_parser.config import Config
-parser = Config(
-    config_files_directory = os.path.join(pkg_resources.get_distribution('ipp-macro-series-parser').location)
-    )
+parser = Config()
 cn_csv = parser.get('data', 'cn_csv_directory')
 tests_data = os.path.join(
     pkg_resources.get_distribution('ipp-macro-series-parser').location,
@@ -58,32 +56,30 @@ def test_get_or_construct_value1():
     folder_year = 2013
     overall_dict = {
         'pib': {
-            'code': None,
+            'code': 'B1g/PIB',
             'institution': 'S1',
-            'ressources': False,
             'description': 'PIB'
             },
         'complicated_var': {
             'code': None,
-            'institution': 'S1',
-            'ressources': False,
             'description': 'PIB0',
             'formula': '2*pib - pib - pib + pib*pib - pib^2'
             },
         'very_complicated_var': {
             'code': None,
-            'institution': 'S1',
-            'ressources': False,
             'description': 'PIB0',
             'formula': 'complicated_var^2'
             }
         }
-    variable_name = 'very_complicated_var'
     df = get_comptes_nationaux_data(folder_year)
+
+    variable_name = 'pib'
+    pib_serie = get_or_construct_value(df, variable_name, overall_dict, years = range(1949, 2014))
+    variable_name = 'very_complicated_var'
     serie, formula = get_or_construct_value(df, variable_name, overall_dict, years = range(1949, 2014))
     assert isinstance(serie, pandas.DataFrame)
     assert serie.columns == [variable_name]
-    assert all(serie[variable_name] == 0)
+    assert all(serie[variable_name] == 0), serie[variable_name]
 
 
 def test_get_or_construct_data_profits():  # copied on the one in cn_test
@@ -101,4 +97,6 @@ def test_get_or_construct_data_CN1():  # copied on the one in cn_test
     values_CN1_target = read_CN1(2013)
     variables_CN1 = generate_CN1_variables(2013)
     values_CN1, formulas_CN1 = get_or_construct_data(df, variables_CN1, range(1949, 2014))
+    print values_CN1.columns
+    print values_CN1_target.columns
     assert_frame_equal(values_CN1, values_CN1_target)

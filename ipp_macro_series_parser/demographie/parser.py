@@ -1,36 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
-# TAXIPP -- A French microsimulation model
-# By: IPP <taxipp@ipp.eu>
-#
-# Copyright (C) 2012, 2013, 2014, 2015 IPP
-# https://github.com/taxipp
-#
-# This file is part of TAXIPP.
-#
-# TAXIPP is free software; you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# TAXIPP is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 import os
 import pandas
 import pkg_resources
 from ipp_macro_series_parser.config import Config
 
-config_parser = Config(
-    config_files_directory = os.path.join(pkg_resources.get_distribution('ipp-macro-series-parser').location)
-    )
+config_parser = Config()
 xls_directory = os.path.join(config_parser.get('data', 'demographie_directory'), 'xls')
 
 
@@ -58,10 +35,9 @@ def create_demographie_data_frame():
             try:
                 df = pandas.read_excel(
                     file_path,
-                    # na_values = '-',
                     sheetname = sheetname,
                     skiprows = skiprows,
-                    parse_cols = parse_cols).iloc[slice_start:slice_end]
+                    parse_cols = parse_cols).iloc[slice_start:slice_end].copy()
                 df['year'] = year
                 if sheetname in ['France', u'France métropolitaine']:
                     df['champ'] = sheetname
@@ -80,5 +56,6 @@ def create_demographie_data_frame():
             except Exception, e:
                 print year
                 print sheetname
-                raise(e)
+                raise e
+
     return pandas.melt(data_frame, id_vars = ['year', 'champ', u'Âge révolu', u'Année de naissance'])

@@ -2,27 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-# TAXIPP -- A French microsimulation model
-# By: IPP <taxipp@ipp.eu>
-#
-# Copyright (C) 2012, 2013, 2014, 2015 IPP
-# https://github.com/taxipp
-#
-# This file is part of TAXIPP.
-#
-# TAXIPP is free software; you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# TAXIPP is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """Download Comptes nationaux files from the INSEE website for specific years and unzip them
 INSEE website: http://www.insee.fr/fr/indicateurs/cnat_annu/archives/comptes_annee_YEAR.zip
 """
@@ -31,7 +10,6 @@ INSEE website: http://www.insee.fr/fr/indicateurs/cnat_annu/archives/comptes_ann
 import argparse
 import logging
 import os
-import pkg_resources
 import shutil
 import sys
 import urllib
@@ -42,9 +20,7 @@ from ipp_macro_series_parser.config import Config
 app_name = os.path.splitext(os.path.basename(__file__))[0]
 log = logging.getLogger(app_name)
 
-parser = Config(
-    config_files_directory = os.path.join(pkg_resources.get_distribution('ipp-macro-series-parser').location)
-    )
+parser = Config()
 cn_directory = parser.get('data', 'cn_directory')
 assert cn_directory != 'None', 'Set cn_directory in the data section of your config_local.ini file to a valid directory'
 
@@ -58,13 +34,13 @@ def getunzipped(url = None, directory = None):
     try:
         log.info('Downloading {}/{}'.format(url, name))
         name, hdrs = urllib.urlretrieve(url, name)
-    except IOError, e:
+    except IOError as e:
         log.info("Can't retrieve %r to %r: %s" % (url, directory, e))
         return
     try:
         log.info('Unzipping {}'.format(name))
         z = zipfile.ZipFile(name)
-    except zipfile.error, e:
+    except zipfile.error as e:
         log.info("Bad or nonexistent zipfile (from %r): %s" % (url, e))
         return
     z.close()
